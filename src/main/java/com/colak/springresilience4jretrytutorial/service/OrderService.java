@@ -1,6 +1,8 @@
 package com.colak.springresilience4jretrytutorial.service;
 
+import io.github.resilience4j.retry.RetryRegistry;
 import io.github.resilience4j.retry.annotation.Retry;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -9,11 +11,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-
-import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -24,26 +22,31 @@ public class OrderService {
 
     private final RestTemplate restTemplate;
 
+    private final RetryRegistry retryRegistry;
+
+    // Add Retry Event Listeners
+    @PostConstruct
+    public void postConstruct() {
+        io.github.resilience4j.retry.Retry.EventPublisher eventPublisher = retryRegistry.retry(SERVICE_NAME).getEventPublisher();
+        eventPublisher.onEvent(event -> log.info("On Event. Event Details: {}", event));
+        eventPublisher.onError(event -> log.info("On Error. Event Details: {}", event));
+        eventPublisher.onRetry(event -> log.info("On Retry. Event Details: {}", event));
+        eventPublisher.onSuccess(event -> log.info("On Success. Event Details: {}", event));
+        eventPublisher.onIgnoredError(event -> log.info("On Ignored Error. Event Details: {}", event));
+
+    }
+
     @Retry(name = SERVICE_NAME, fallbackMethod = "fallbackMethod")
     public String getOrderByPostCode() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> entity = new HttpEntity<>(null, headers);
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                    ADDRESS_SERVICE_URL,
-                    HttpMethod.GET,
-                    entity,
-                    String.class);
-            return response.getBody();
-
-        } catch (HttpServerErrorException exception) {
-            log.info(STR."Retry due to http server error at: \{Instant.now()}");
-            throw exception;
-        } catch (ResourceAccessException exception) {
-            log.info(STR."Retry due to resource access at: \{Instant.now()}");
-            throw exception;
-        }
+        ResponseEntity<String> response = restTemplate.exchange(
+                ADDRESS_SERVICE_URL,
+                HttpMethod.GET,
+                entity,
+                String.class);
+        return response.getBody();
     }
 
     private String fallbackMethod(Exception exception) {

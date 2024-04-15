@@ -15,7 +15,7 @@
     <description>Demo project for Spring Boot</description>
     <properties>
         <java.version>22</java.version>
-        <resilience4j-spring6.version>2.0.2</resilience4j-spring6.version>
+        <resilience4j-spring6.version>2.2.0</resilience4j-spring6.version>
     </properties>
 
     <build>

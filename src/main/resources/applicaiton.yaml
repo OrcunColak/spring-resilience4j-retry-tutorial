@@ -8,12 +8,16 @@ management:
         include: "*"
 resilience4j:
   retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
     instances:
       order-service:
         # Maximum number of attempts (including the initial call as the first attempt)
         max-attempts: 3
         # Fixed wait duration between retry attempts
-        wait-duration: 1s
+        wait-duration: 2s
         retry-exceptions:
           - org.springframework.web.client.HttpServerErrorException
         ignore-exceptions:
