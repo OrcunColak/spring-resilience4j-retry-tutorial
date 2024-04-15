@@ -28,10 +28,19 @@ public class OrderService {
     @PostConstruct
     public void postConstruct() {
         io.github.resilience4j.retry.Retry.EventPublisher eventPublisher = retryRegistry.retry(SERVICE_NAME).getEventPublisher();
+        // Activates when any event transpires during the retry process.
         eventPublisher.onEvent(event -> log.info("On Event. Event Details: {}", event));
+
+        // Activates when an error occurs, signifying the failure of the retry attempt.
         eventPublisher.onError(event -> log.info("On Error. Event Details: {}", event));
+
+        // Executes when a retry is attempted.
         eventPublisher.onRetry(event -> log.info("On Retry. Event Details: {}", event));
+
+        //  Initiates when the retry operation achieves success.
         eventPublisher.onSuccess(event -> log.info("On Success. Event Details: {}", event));
+
+        // This takes effect when an error event is disregarded as per the configured Retry settings.
         eventPublisher.onIgnoredError(event -> log.info("On Ignored Error. Event Details: {}", event));
 
     }
